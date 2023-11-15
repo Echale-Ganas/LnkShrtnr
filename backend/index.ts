@@ -47,45 +47,72 @@ function shouldDenyServe(path): boolean {
         || path === "/wp-login.php";
 }
 
-function fetch(req: Request): Promise<Response> {
+function processRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
     return new Promise(async (resolve, reject) => {
         if (shouldDenyServe(url.pathname)) {
             reject(new Response("Sorry! You're trying to access unauthorized pages."));
         }
-        if (url.pathname === "/") {
-            resolve(new Response("Home"));
-            // do home page
-        } else if (url.pathname === "/admin") {
+        if (req.method.toLowerCase() === "post") {
+            if (url.pathname === "/create") {
+                let createFormData: FormData = await req.formData();
+                if (!createFormData.has("shortPath") || !createFormData.has("longPath")) {
+                    reject(new Response("Cannot process this request due to missing information", {
+                        status: 400
+                    }));
+                    return;
+                }
+                let shortcutObj = {
+                    shortPath: createFormData.get("shortPath"),
+                    longPath: createFormData.get("longPath")
+                };
+                if (createFormData.has("title")) shortcutObj["title"] = createFormData.get("title");
 
-        } else {
-            // attempt to serve shortener
-
-            let shortcut = url.pathname.slice(1).trim().toLowerCase();
-            const query = {shortPath: shortcut};
-            const result = await shortcuts.findOne(query);
-            if (result && result.longPath) {
-
-                let title = result.title || url.pathname.slice(1);
-                resolve(new Response(`<html><head><title>${title}</title></head>
-                        <script type="text/javascript">window.location.replace("${result.longPath}")</script>
-                    </html>`, {
-                    headers: {
-                        "Content-Type": "text/html",
-                    },
-                }));
-                let updateQuery;
-                if (result.hits) updateQuery = { $inc: { hits: 1 } };
-                else updateQuery = { $set: { hits: 1 } };
-
-                await shortcuts.updateOne(
-                    {shortPath: shortcut},
-                    updateQuery
+                shortcuts.insertOne(shortcutObj).then(
+                    resolve(new Response("success", {
+                        status: 200
+                    }))
+                ).catch(() => {
+                    reject(new Response("could not add", {
+                        status: 500
+                    }))
+                }
                 );
-
-                return;
             }
-            reject(new Response("Sorry, unable to find that link!"))
+        } else {
+            if (url.pathname === "/") {
+                let response = fetch("")
+                resolve(new Response("Home"));
+                // do home page
+            } else if (url.pathname === "/admin") {
+
+            } else {
+                let shortcut = url.pathname.slice(1).trim().toLowerCase();
+                const query = {shortPath: shortcut};
+                const result = await shortcuts.findOne(query);
+                if (result && result.longPath) {
+
+                    let title = result.title || url.pathname.slice(1);
+                    resolve(new Response(`<html><head><title>${title}</title></head>
+                            <script type="text/javascript">window.location.replace("${result.longPath}")</script>
+                        </html>`, {
+                        headers: {
+                            "Content-Type": "text/html",
+                        },
+                    }));
+                    let updateQuery;
+                    if (result.hits) updateQuery = { $inc: { hits: 1 } };
+                    else updateQuery = { $set: { hits: 1 } };
+
+                    await shortcuts.updateOne(
+                        {shortPath: shortcut},
+                        updateQuery
+                    );
+
+                    return;
+                }
+                reject(new Response("Sorry, unable to find that link!"))
+            }
         }
     }).finally(() => {
         if (!isExcludedFromAnalytics(url.pathname)) {
@@ -102,7 +129,7 @@ function fetch(req: Request): Promise<Response> {
 
 const server = Bun.serve({
     port: 3000,
-    fetch,
+    fetch: processRequest,
     error(error) {
         console.log(error)
         return new Response(`<pre>Oops, we encountered an error. Sorry!</pre>`, {
