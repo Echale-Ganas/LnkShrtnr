@@ -1,8 +1,12 @@
+import React from "react";
 import {MongoClient, ServerApiVersion} from "mongodb";
+import {renderToReadableStream} from "react-dom/server";
+import HandleFrontend from "./frontend";
+import Home from "../pages/home";
 
 require('dotenv').config()
 
-const mongoURI = encodeURI(<string> process.env.MONGO_URI); // Remember to provide a MONGO_URI in the .env file
+const mongoURI = encodeURI(process.env.MONGO_URI || ""); // Remember to provide a MONGO_URI in the .env file
 const dbName = process.env.DB_NAME; // Remember to provide a DB_NAME in the .env file
 
 const client = new MongoClient(mongoURI, {
@@ -47,6 +51,10 @@ function shouldDenyServe(path): boolean {
         || path === "/wp-login.php";
 }
 
+function isFrontendPage(path): boolean {
+    return path === "/" || path === "/admin" || path === "/login";
+}
+
 function processRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
     return new Promise(async (resolve, reject) => {
@@ -78,17 +86,18 @@ function processRequest(req: Request): Promise<Response> {
                     }))
                 }
                 );
+            } else if (url.pathname === "/login") {
+                let createFormData: FormData = await req.formData();
+                if (createFormData.has("username") && createFormData.has("password") &&
+                    createFormData.get("username") === process.env.USERNAME && createFormData.get("password") === process.env.PASSWORD) {
+                    resolve(new Response("verified", {
+                        headers: {}
+                    }))
+                }
             }
         } else {
-            if (url.pathname === "/") {
-                let response = await fetch("localhost:3000/");
-                resolve(new Response(await response.text(), {
-                    headers: {
-                        "Content-Type": "text/html",
-                    }
-                }));
-            } else if (url.pathname === "/admin") {
-
+            if (isFrontendPage(url.pathname)) {
+                return HandleFrontend(req, resolve, reject);
             } else {
                 let shortcut = url.pathname.slice(1).trim().toLowerCase();
                 const query = {shortPath: shortcut};
