@@ -81,9 +81,12 @@ function processRequest(req: Request): Promise<Response> {
             }
         } else {
             if (url.pathname === "/") {
-                let response = fetch("")
-                resolve(new Response("Home"));
-                // do home page
+                let response = await fetch("localhost:3000/");
+                resolve(new Response(await response.text(), {
+                    headers: {
+                        "Content-Type": "text/html",
+                    }
+                }));
             } else if (url.pathname === "/admin") {
 
             } else {
@@ -128,7 +131,7 @@ function processRequest(req: Request): Promise<Response> {
 
 
 const server = Bun.serve({
-    port: 3000,
+    port: 3030,
     fetch: processRequest,
     error(error) {
         console.log(error)
