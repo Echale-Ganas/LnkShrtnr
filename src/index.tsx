@@ -1,25 +1,21 @@
 import React from "react";
-import {MongoClient, ServerApiVersion} from "mongodb";
-import {renderToReadableStream} from "react-dom/server";
 import HandleFrontend from "./frontend";
-import Home from "../pages/home";
+import {DbInterface, Shortcut} from "./dbInterface";
+import {MongoInterface} from "./mongoInterface";
+import {SqliteInterface} from "./sqliteInterface";
 
 require('dotenv').config()
 
-const mongoURI = encodeURI(process.env.MONGO_URI || ""); // Remember to provide a MONGO_URI in the .env file
-const dbName = process.env.DB_NAME; // Remember to provide a DB_NAME in the .env file
+let dbConnection: DbInterface;
 
-const client = new MongoClient(mongoURI, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
-});
-const connection = await client.connect();
-const db = await connection.db(dbName);
-const shortcuts = db.collection("Shortcuts");
-const analytics = db.collection("Analytics");
+if (false) {
+    const mongoURI = encodeURI(process.env.MONGO_URI || ""); // Remember to provide a MONGO_URI in the .env file
+    const dbName = process.env.DB_NAME || "Database"; // Remember to provide a DB_NAME in the .env file
+    dbConnection = new MongoInterface(mongoURI, dbName);
+} else {
+    dbConnection = new SqliteInterface();
+}
+
 
 /**
  * Often times, bots and scrapers (and sometimes ourselves!) will ping some of the
@@ -59,7 +55,9 @@ function processRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
     return new Promise(async (resolve, reject) => {
         if (shouldDenyServe(url.pathname)) {
-            reject(new Response("Sorry! You're trying to access unauthorized pages."));
+            reject(new Response("Sorry! You're trying to access unauthorized pages.", {
+                status: 401
+            }));
         }
         if (req.method.toLowerCase() === "post") {
             if (url.pathname === "/create") {
@@ -70,17 +68,14 @@ function processRequest(req: Request): Promise<Response> {
                     }));
                     return;
                 }
-                let shortcutObj = {
-                    shortPath: createFormData.get("shortPath"),
-                    longPath: createFormData.get("longPath")
-                };
-                if (createFormData.has("title")) shortcutObj["title"] = createFormData.get("title");
+                let shortcutObj = new Shortcut(createFormData.get("shortPath").toString(), createFormData.get("longPath").toString());
+                if (createFormData.has("title")) shortcutObj["title"] = createFormData.get("title").toString();
 
-                shortcuts.insertOne(shortcutObj).then(
+                dbConnection.addShortcut(shortcutObj).then(() => {
                     resolve(new Response("success", {
                         status: 200
                     }))
-                ).catch(() => {
+                }).catch(() => {
                     reject(new Response("could not add", {
                         status: 500
                     }))
@@ -100,30 +95,21 @@ function processRequest(req: Request): Promise<Response> {
                 return HandleFrontend(req, resolve, reject);
             } else {
                 let shortcut = url.pathname.slice(1).trim().toLowerCase();
-                const query = {shortPath: shortcut};
-                const result = await shortcuts.findOne(query);
-                if (result && result.longPath) {
-
+                dbConnection.findShortcut(shortcut).then((result) => {
                     let title = result.title || url.pathname.slice(1);
                     resolve(new Response(`<html><head><title>${title}</title></head>
-                            <script type="text/javascript">window.location.replace("${result.longPath}")</script>
-                        </html>`, {
+                        <script type="text/javascript">window.location.replace("${result.longPath}")</script>
+                    </html>`, {
                         headers: {
                             "Content-Type": "text/html",
                         },
                     }));
-                    let updateQuery;
-                    if (result.hits) updateQuery = { $inc: { hits: 1 } };
-                    else updateQuery = { $set: { hits: 1 } };
-
-                    await shortcuts.updateOne(
-                        {shortPath: shortcut},
-                        updateQuery
-                    );
+                    dbConnection.updateHits(shortcut);
 
                     return;
-                }
-                reject(new Response("Sorry, unable to find that link!"))
+                }).catch((error) => {
+                    reject(new Response("Sorry, unable to find that link!"))
+                })
             }
         }
     }).finally(() => {
@@ -133,7 +119,7 @@ function processRequest(req: Request): Promise<Response> {
                 "timestamp": Date.now()
             };
             if (url.searchParams && Object.keys(url.searchParams).length) analyticObject["params"] = url.searchParams;
-            analytics.insertOne(analyticObject);
+            dbConnection.logAnalytics(analyticObject);
         }
     })
 }
