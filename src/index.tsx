@@ -1,8 +1,9 @@
-import React from "react";
 import HandleFrontend from "./frontend";
 import {DbInterface, Shortcut} from "./dbInterface";
 import {MongoInterface} from "./mongoInterface";
 import {SqliteInterface} from "./sqliteInterface";
+import { password } from "bun";
+import { Authenticator } from "./authentication";
 
 require('dotenv').config()
 
@@ -15,7 +16,9 @@ if (false) {
 } else {
     dbConnection = new SqliteInterface();
 }
-
+let passwordHashed: string = await Bun.password.hash(process.env.PASSWORD);
+let hashedPassword: string = Bun.hash(process.env.PASSWORD).toString();
+const auth: Authenticator = new Authenticator(passwordHashed, hashedPassword);
 
 /**
  * Often times, bots and scrapers (and sometimes ourselves!) will ping some of the
@@ -24,7 +27,7 @@ if (false) {
  * @param path The URL that is being queried.
  * @returns if the path should be excluded from analytics or not.
  */
-function isExcludedFromAnalytics(path): boolean {
+function isExcludedFromAnalytics(path: string): boolean {
     return path === "/favicon.ico"
         || /.*(css).*/.test(path)
         || path === "/.env"
@@ -36,7 +39,7 @@ function isExcludedFromAnalytics(path): boolean {
         || path === "/wp-login.php";
 }
 
-function shouldDenyServe(path): boolean {
+function shouldDenyServe(path: string): boolean {
     return /.*(css).*/.test(path)
         || path === "/.env"
         || /.*(git).*/.test(path)
@@ -47,23 +50,31 @@ function shouldDenyServe(path): boolean {
         || path === "/wp-login.php";
 }
 
-function isFrontendPage(path): boolean {
+function isFrontendPage(path: string): boolean {
     return path === "/" || path === "/admin" || path === "/login";
 }
 
 function processRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
-    return new Promise(async (resolve, reject) => {
+    console.log(req);
+    return new Promise<Response>(async (resolve, reject) => {
         if (shouldDenyServe(url.pathname)) {
-            reject(new Response("Sorry! You're trying to access unauthorized pages.", {
+            resolve(new Response("Sorry! You're trying to access unauthorized pages.", {
                 status: 401
             }));
+            return;
         }
         if (req.method.toLowerCase() === "post") {
             if (url.pathname === "/create") {
+                if (!req.headers.has("cookie") || !auth.isValidCookie(req.headers.get("cookie"))) {
+                    resolve(new Response("Sorry! You're trying to access unauthorized pages.", {
+                        status: 401
+                    }));
+                    return;
+                }
                 let createFormData: FormData = await req.formData();
-                if (!createFormData.has("shortPath") || !createFormData.has("longPath")) {
-                    reject(new Response("Cannot process this request due to missing information", {
+                if (createFormData == undefined || createFormData == null || !createFormData.has("shortPath") || !createFormData.has("longPath")) {
+                    resolve(new Response("Cannot process this request due to missing information", {
                         status: 400
                     }));
                     return;
@@ -76,7 +87,7 @@ function processRequest(req: Request): Promise<Response> {
                         status: 200
                     }))
                 }).catch(() => {
-                    reject(new Response("could not add", {
+                    resolve(new Response("could not add", {
                         status: 500
                     }))
                 }
@@ -84,11 +95,19 @@ function processRequest(req: Request): Promise<Response> {
             } else if (url.pathname === "/login") {
                 let createFormData: FormData = await req.formData();
                 if (createFormData.has("username") && createFormData.has("password") &&
-                    createFormData.get("username") === process.env.USERNAME && createFormData.get("password") === process.env.PASSWORD) {
-                    resolve(new Response("verified", {
-                        headers: {}
-                    }))
+                    createFormData.get("username") === process.env.USERNAME) {
+                    if (auth.authenticate(createFormData.get("password"))) {
+                        resolve(new Response("verified", {
+                            headers: {
+                                "Set-Cookie": `credential=${Bun.hash(createFormData.get("password"))}`
+                            }
+                        }));
+                        return;
+                    }
                 }
+                resolve(new Response("wrong credentials", {
+                    status: 401
+                }));
             }
         } else {
             if (isFrontendPage(url.pathname)) {
@@ -108,7 +127,7 @@ function processRequest(req: Request): Promise<Response> {
 
                     return;
                 }).catch((error) => {
-                    reject(new Response("Sorry, unable to find that link!"))
+                    resolve(new Response("Sorry, unable to find that link!"))
                 })
             }
         }
