@@ -51,7 +51,7 @@ function shouldDenyServe(path: string): boolean {
 }
 
 function isFrontendPage(path: string): boolean {
-    return path === "/" || path === "/admin" || path === "/login";
+    return path === "/" || path === "/admin" || path === "/login" || path === "/create";
 }
 
 function processRequest(req: Request): Promise<Response> {
@@ -97,8 +97,11 @@ function processRequest(req: Request): Promise<Response> {
                 if (createFormData.has("username") && createFormData.has("password") &&
                     createFormData.get("username") === process.env.USERNAME) {
                     if (auth.authenticate(createFormData.get("password"))) {
-                        resolve(new Response("verified", {
+                        resolve(new Response(`<html>
+                                <script type="text/javascript">window.location.replace("/admin")</script>
+                            </html>`, {
                             headers: {
+                                "Content-Type": "text/html",
                                 "Set-Cookie": `credential=${Bun.hash(createFormData.get("password"))}`
                             }
                         }));
