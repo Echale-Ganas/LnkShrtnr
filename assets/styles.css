@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+:root {
+    --blue: #102542;
+    --blue-rgb: rgb(#102542);
+    --salmon: #F87060;
+    --platinum: #F1E3E4;
+    --platinum-rgb: 241, 227, 228;
+    --wine: #7E1946;
+    --wine-rgb: 126, 25, 70;
+    --light-blue: #0081AF;
+}
+
+body {
+    background-color: #000;
+    margin: 0;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    
+}
+
+#fullContainer {
+    margin: 4em;
+}
+
+p, h1, h2, h3 {
+    padding: 0;
+    margin: 0;
+}
+
+#navigation {
+    transition: .5s;
+    position: relative;
+    padding: 1em;
+    background-color: var(--platinum);
+    color: var(--blue);
+    border-radius: 1em;
+}
+
+#navigation:hover {
+    transition: .5s;
+    box-shadow: rgba(var(--platinum-rgb), 0.7) 0px 0px 8px;
+}
+
+#navigation h1 {
+    display: inline;
+    font-weight:700;
+    color: var(--wine)
+}
+
+#navigation ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: inline;
+    position: absolute;
+    top: 50%;
+    right: 1em;
+    transform: translate(0, -50%);
+}
+
+#navigation li {
+    transition: .2s;
+    padding: .5em;
+    border-radius: .5em;
+    background-color: var(--wine);
+    display: inline;
+    margin-left: 1em;
+}
+
+#navigation li:hover {
+    transition: .2s;
+    box-shadow: rgba(var(--wine-rgb), 0.7) 0px 0px 4px;
+}
+
+#navigation a {
+    text-decoration: none;
+    color: var(--platinum);
+}

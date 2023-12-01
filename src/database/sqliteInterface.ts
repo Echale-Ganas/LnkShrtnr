@@ -6,6 +6,7 @@ export class SqliteInterface implements DbInterface {
     private db: Database;
     private addQuery: Statement;
     private findQuery: Statement;
+    private updateHitsQuery: Statement;
 
     constructor() {
 
@@ -26,7 +27,7 @@ export class SqliteInterface implements DbInterface {
 
         this.addQuery = this.db.query(`INSERT INTO Shortcuts (shortPath, longPath, title, hits) VALUES ($shortPath, $longPath, $title, $hits)`);
         this.findQuery = this.db.query(`SELECT * FROM Shortcuts WHERE shortPath = $short`);
-
+        this.updateHitsQuery = this.db.query(`UPDATE Shortcuts SET hits = hits + 1 WHERE shortPath = $short`);
     }
 
     addShortcut(shortcut: Shortcut): Promise<boolean> {
@@ -51,7 +52,10 @@ export class SqliteInterface implements DbInterface {
     logAnalytics(analyticsObj: any): void {
     }
 
-    updateHits(shortPath: string): void {
+    incrementHits(shortPath: string): void {
+        this.updateHitsQuery.run({
+            $shortPath: shortPath
+        });
     }
 
 }

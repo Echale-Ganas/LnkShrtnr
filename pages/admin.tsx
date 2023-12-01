@@ -1,7 +1,11 @@
 import React from "react";
+import Container from "./templates/container";
+import Navigation from "./templates/navigation";
 
 function Admin() {
-    return <p>lol</p>;
+    return <Container title="Admin">
+        <Navigation currentPage="admin"></Navigation>
+    </Container>;
 }
 
 export default Admin;

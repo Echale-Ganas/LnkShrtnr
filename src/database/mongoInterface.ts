@@ -57,7 +57,7 @@ export class MongoInterface implements DbInterface {
         this.analytics.insertOne(analyticsObj);
     }
 
-    updateHits(shortPath: string): void {
+    incrementHits(shortPath: string): void {
         // let updateQuery;
         // if (result.hits) updateQuery = {$inc: {hits: 1}};
         // else updateQuery = {$set: {hits: 1}};

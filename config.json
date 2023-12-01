@@ -1,0 +1,7 @@
+{
+    "username": "test_user",
+    "password": "my_password",
+    "mongo_uri": "",
+    "mongo_database": "LnkShrtnr",
+    "db_connection_type": "sqlite"
+}

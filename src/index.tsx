@@ -1,23 +1,24 @@
 import HandleFrontend from "./frontend";
-import {DbInterface, Shortcut} from "./dbInterface";
-import {MongoInterface} from "./mongoInterface";
-import {SqliteInterface} from "./sqliteInterface";
-import { password } from "bun";
+import {DbInterface, Shortcut} from "./database/dbInterface";
+import {MongoInterface} from "./database/mongoInterface";
+import {SqliteInterface} from "./database/sqliteInterface";
 import { Authenticator } from "./authentication";
 
 require('dotenv').config()
 
+const config = await Bun.file("./config.json").json();
+
 let dbConnection: DbInterface;
 
-if (false) {
-    const mongoURI = encodeURI(process.env.MONGO_URI || ""); // Remember to provide a MONGO_URI in the .env file
-    const dbName = process.env.DB_NAME || "Database"; // Remember to provide a DB_NAME in the .env file
+if (config["db_connection_type"] === "mongodb") {
+    const mongoURI = encodeURI(config["mongo_uri"] || ""); // Remember to provide a MONGO_URI in the .env file
+    const dbName = config["mongo_database"] || "Database"; // Remember to provide a DB_NAME in the .env file
     dbConnection = new MongoInterface(mongoURI, dbName);
 } else {
     dbConnection = new SqliteInterface();
 }
-let passwordHashed: string = await Bun.password.hash(process.env.PASSWORD);
-let hashedPassword: string = Bun.hash(process.env.PASSWORD).toString();
+let passwordHashed: string = await Bun.password.hash(config["password"]);
+let hashedPassword: string = Bun.hash(config["password"]).toString();
 const auth: Authenticator = new Authenticator(passwordHashed, hashedPassword);
 
 /**
@@ -40,8 +41,7 @@ function isExcludedFromAnalytics(path: string): boolean {
 }
 
 function shouldDenyServe(path: string): boolean {
-    return /.*(css).*/.test(path)
-        || path === "/.env"
+    return path === "/.env"
         || /.*(git).*/.test(path)
         || /.*(owa).*/.test(path)
         || /.*(well-known).*/.test(path)
@@ -62,6 +62,10 @@ function processRequest(req: Request): Promise<Response> {
             resolve(new Response("Sorry! You're trying to access unauthorized pages.", {
                 status: 401
             }));
+            return;
+        }
+        if (url.pathname === "/styles.css") {
+            resolve(new Response(Bun.file("./assets/styles.css")));
             return;
         }
         if (req.method.toLowerCase() === "post") {
@@ -95,7 +99,7 @@ function processRequest(req: Request): Promise<Response> {
             } else if (url.pathname === "/login") {
                 let createFormData: FormData = await req.formData();
                 if (createFormData.has("username") && createFormData.has("password") &&
-                    createFormData.get("username") === process.env.USERNAME) {
+                    createFormData.get("username") === config["username"]) {
                     if (auth.authenticate(createFormData.get("password"))) {
                         resolve(new Response(`<html>
                                 <script type="text/javascript">window.location.replace("/admin")</script>
@@ -115,6 +119,17 @@ function processRequest(req: Request): Promise<Response> {
         } else {
             if (isFrontendPage(url.pathname)) {
                 return HandleFrontend(req, resolve, reject);
+            } else if (url.pathname === "/logout") {
+                resolve(new Response(`<html>
+                        <script type="text/javascript">window.location.replace("/")</script>
+                    </html>`, {
+                    headers: {
+                        "Content-Type": "text/html",
+                        "Set-Cookie": ``
+                    }
+                }));
+                return;
+
             } else {
                 let shortcut = url.pathname.slice(1).trim().toLowerCase();
                 dbConnection.findShortcut(shortcut).then((result) => {
@@ -126,7 +141,7 @@ function processRequest(req: Request): Promise<Response> {
                             "Content-Type": "text/html",
                         },
                     }));
-                    dbConnection.updateHits(shortcut);
+                    dbConnection.incrementHits(shortcut);
 
                     return;
                 }).catch((error) => {
