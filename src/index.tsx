@@ -3,6 +3,7 @@ import {DbInterface, Shortcut} from "./database/dbInterface";
 import {MongoInterface} from "./database/mongoInterface";
 import {SqliteInterface} from "./database/sqliteInterface";
 import { Authenticator } from "./authentication";
+import {Component} from "react";
 
 require('dotenv').config()
 
@@ -54,6 +55,10 @@ function isFrontendPage(path: string): boolean {
     return path === "/" || path === "/admin" || path === "/login" || path === "/create";
 }
 
+function getInternalRedirect(path: string): string {
+    return `<html><script type="text/javascript">window.location.replace("/${path}")</script></html>`
+}
+
 function processRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
     console.log(req);
@@ -87,9 +92,7 @@ function processRequest(req: Request): Promise<Response> {
                 if (createFormData.has("title")) shortcutObj["title"] = createFormData.get("title").toString();
 
                 dbConnection.addShortcut(shortcutObj).then(() => {
-                    resolve(new Response(`<html>
-                                <script type="text/javascript">window.location.replace("/admin")</script>
-                            </html>`, {
+                    resolve(new Response(getInternalRedirect("admin"), {
                         headers: {
                             "Content-Type": "text/html"
                         }
@@ -105,9 +108,7 @@ function processRequest(req: Request): Promise<Response> {
                 if (createFormData.has("username") && createFormData.has("password") &&
                     createFormData.get("username") === config["username"]) {
                     if (auth.authenticate(createFormData.get("password"))) {
-                        resolve(new Response(`<html>
-                                <script type="text/javascript">window.location.replace("/admin")</script>
-                            </html>`, {
+                        resolve(new Response(getInternalRedirect("admin"), {
                             headers: {
                                 "Content-Type": "text/html",
                                 "Set-Cookie": `credential=${Bun.hash(createFormData.get("password"))}`
@@ -124,9 +125,7 @@ function processRequest(req: Request): Promise<Response> {
             if (isFrontendPage(url.pathname)) {
                 return HandleFrontend(req, dbConnection, auth, resolve, reject);
             } else if (url.pathname === "/logout") {
-                resolve(new Response(`<html>
-                        <script type="text/javascript">window.location.replace("/")</script>
-                    </html>`, {
+                resolve(new Response(getInternalRedirect(""), {
                     headers: {
                         "Content-Type": "text/html",
                         "Set-Cookie": `credential=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT`
@@ -134,6 +133,16 @@ function processRequest(req: Request): Promise<Response> {
                 }));
                 return;
 
+            } else if (url.pathname === "/delete") {
+                if (url.searchParams && url.searchParams.size && url.searchParams.has("shortPath")) {
+                    await dbConnection.deleteShortcut(url.searchParams.get("shortPath"));
+                    resolve(new Response(getInternalRedirect("admin"), {
+                        headers: {
+                            "Content-Type": "text/html"
+                        }
+                    }));
+                    return;
+                }
             } else {
                 let shortcut = url.pathname.slice(1).trim().toLowerCase();
                 dbConnection.findShortcut(shortcut).then((result) => {
@@ -158,7 +167,7 @@ function processRequest(req: Request): Promise<Response> {
                 "path": url.pathname,
                 "timestamp": Date.now()
             };
-            if (url.searchParams && Object.keys(url.searchParams).length) analyticObject["params"] = url.searchParams;
+            if (url.searchParams && url.searchParams.size) analyticObject["params"] = url.searchParams;
             dbConnection.logAnalytics(analyticObject);
         }
     })

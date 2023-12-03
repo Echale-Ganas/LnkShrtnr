@@ -8,6 +8,7 @@ export class SqliteInterface implements DbInterface {
     private findQuery: Statement;
     private updateHitsQuery: Statement;
     private getAllQuery: Statement;
+    private deleteQuery: Statement;
 
     constructor() {
 
@@ -28,9 +29,10 @@ export class SqliteInterface implements DbInterface {
         )`);
 
         this.addQuery = this.db.query(`INSERT INTO Shortcuts (shortPath, longPath, title, hits) VALUES ($shortPath, $longPath, $title, $hits);`);
-        this.findQuery = this.db.query(`SELECT * FROM Shortcuts WHERE shortPath = $short;`);
+        this.findQuery = this.db.query(`SELECT * FROM Shortcuts WHERE shortPath = $shortPath;`);
         this.updateHitsQuery = this.db.query(`UPDATE Shortcuts SET hits = hits + 1 WHERE shortPath = $shortPath;`);
-        this.getAllQuery = this.db.query(`SELECT * FROM Shortcuts;`)
+        this.getAllQuery = this.db.query(`SELECT * FROM Shortcuts;`);
+        this.deleteQuery = this.db.query(`DELETE FROM Shortcuts WHERE shortPath = $shortPath`);
     }
 
     addShortcut(shortcut: Shortcut): Promise<boolean> {
@@ -47,7 +49,7 @@ export class SqliteInterface implements DbInterface {
 
     findShortcut(shortPath: string): Promise<Shortcut> {
         return new Promise((resolve, reject) => {
-            let result = this.findQuery.get({ $short: shortPath });
+            let result = this.findQuery.get({ $shortPath: shortPath });
             resolve(new Shortcut(result.shortPath, result.longPath, result.title, result.hits));
         });
     }
@@ -70,6 +72,12 @@ export class SqliteInterface implements DbInterface {
             })
             resolve(shortcuts);
         });
+    }
+
+    deleteShortcut(shortPath: string): void {
+        this.deleteQuery.run({
+            $shortPath: shortPath
+        })
     }
 
 }

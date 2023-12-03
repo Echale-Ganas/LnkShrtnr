@@ -1,8 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
     --blue: #102542;
-    --blue-rgb: rgb(#102542);
     --salmon: #F87060;
     --platinum: #F1E3E4;
     --platinum-rgb: 241, 227, 228;
@@ -12,15 +11,13 @@
 }
 
 body {
-    background-color: #000;
+    background-color: var(--platinum);
     margin: 0;
     color: white;
-    font-family: 'Inter', sans-serif;
-    
+    font-family: 'JetBrains Mono', monospace;
 }
 
 #fullContainer {
-    margin: 4em;
     position: relative;
 }
 
@@ -33,9 +30,10 @@ p, h1, h2, h3 {
     transition: .5s;
     position: relative;
     padding: 1em;
+    padding-bottom: 0;
     background-color: var(--platinum);
     color: var(--blue);
-    border-radius: 1em;
+    border-bottom: #7E1946 solid 2px;
 }
 
 #navigation:hover {
@@ -49,39 +47,44 @@ p, h1, h2, h3 {
     color: var(--wine)
 }
 
-#navigation ul {
+#navigation li {
+    transition: .2s;
+    padding: .5em;
+    display: inline;
+    color: var(--wine);
+}
+
+#navigation li:hover {
+    transition: .2s;
+    color: var(--platinum);
+    background-color: var(--wine);
+    /*box-shadow: rgba(var(--wine-rgb), 0.7) 0px 0px 4px;*/
+}
+
+#navigation a {
+    text-decoration: none;
+    color: inherit;
+}
+
+#navBar {
+    width: 900px;
+    position: relative;
+    margin: auto;
+    padding-top: 4em;
+}
+
+#navBar ul {
     list-style-type: none;
     padding: 0;
     margin: 0;
     display: inline;
     position: absolute;
-    top: 50%;
-    right: 1em;
-    transform: translate(0, -50%);
-}
-
-#navigation li {
-    transition: .2s;
-    padding: .5em;
-    border-radius: .5em;
-    background-color: var(--wine);
-    display: inline;
-    margin-left: 1em;
-}
-
-#navigation li:hover {
-    transition: .2s;
-    box-shadow: rgba(var(--wine-rgb), 0.7) 0px 0px 4px;
-}
-
-#navigation a {
-    text-decoration: none;
-    color: var(--platinum);
+    bottom: .5em;
+    right: 0;
 }
 
 #pageContainer {
     width: 400px;
-    border-radius: 2em;
     background-color: var(--wine);
     padding: 2em;
     margin: auto;
@@ -89,14 +92,26 @@ p, h1, h2, h3 {
 }
 
 .button {
+    transition: .2s;
+    display: inline;
     padding: .5em;
-    border-radius: .5em;
+    color: inherit;
+    border: var(--wine) solid 2px;
+}
+
+.button:hover {
+    transition: .2s;
+    background-color: var(--wine);
+    color: var(--platinum);
+}
+
+.button a {
+    color: inherit;
 }
 
 #shortcutContainer {
     transition: .5s;
-    width: 70%;
-    border-radius: 2em;
+    width: calc(900px - 4em);
     background-color: var(--wine);
     padding: 2em;
     margin: auto;
@@ -112,7 +127,6 @@ p, h1, h2, h3 {
     transition: .2s;
     margin: 1em;
     padding: 2em;
-    border-radius: 2em;
     background-color: var(--platinum);
     color: var(--wine);
 }
@@ -132,7 +146,6 @@ form input {
     padding-block: 0;
     padding-inline: 0;
     padding: .2em;
-    border-radius: .2em;
     border: var(--salmon) solid 1px;
     margin-bottom: .5em;
 }
