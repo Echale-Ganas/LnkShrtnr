@@ -77,7 +77,7 @@ function processRequest(req: Request): Promise<Response> {
                     return;
                 }
                 let createFormData: FormData = await req.formData();
-                if (createFormData == undefined || createFormData == null || !createFormData.has("shortPath") || !createFormData.has("longPath")) {
+                if (createFormData == undefined || !createFormData.has("shortPath") || !createFormData.has("longPath")) {
                     resolve(new Response("Cannot process this request due to missing information", {
                         status: 400
                     }));
@@ -87,9 +87,13 @@ function processRequest(req: Request): Promise<Response> {
                 if (createFormData.has("title")) shortcutObj["title"] = createFormData.get("title").toString();
 
                 dbConnection.addShortcut(shortcutObj).then(() => {
-                    resolve(new Response("success", {
-                        status: 200
-                    }))
+                    resolve(new Response(`<html>
+                                <script type="text/javascript">window.location.replace("/admin")</script>
+                            </html>`, {
+                        headers: {
+                            "Content-Type": "text/html"
+                        }
+                    }));
                 }).catch(() => {
                     resolve(new Response("could not add", {
                         status: 500
@@ -118,14 +122,14 @@ function processRequest(req: Request): Promise<Response> {
             }
         } else {
             if (isFrontendPage(url.pathname)) {
-                return HandleFrontend(req, resolve, reject);
+                return HandleFrontend(req, dbConnection, auth, resolve, reject);
             } else if (url.pathname === "/logout") {
                 resolve(new Response(`<html>
                         <script type="text/javascript">window.location.replace("/")</script>
                     </html>`, {
                     headers: {
                         "Content-Type": "text/html",
-                        "Set-Cookie": ``
+                        "Set-Cookie": `credential=deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT`
                     }
                 }));
                 return;
@@ -142,7 +146,6 @@ function processRequest(req: Request): Promise<Response> {
                         },
                     }));
                     dbConnection.incrementHits(shortcut);
-
                     return;
                 }).catch((error) => {
                     resolve(new Response("Sorry, unable to find that link!"))

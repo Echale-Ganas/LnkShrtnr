@@ -67,4 +67,11 @@ export class MongoInterface implements DbInterface {
         // );
     }
 
+    getAllShortcuts(): Promise<Shortcut[]> {
+        return Promise.resolve([]);
+    }
+
+    deleteShortcut(shortPath: string): void {
+    }
+
 }

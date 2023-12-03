@@ -16,6 +16,8 @@ export interface DbInterface {
 
     findShortcut(shortPath: string): Promise<Shortcut>;
     addShortcut(shortcut: Shortcut): Promise<boolean>;
+    getAllShortcuts(): Promise<Shortcut[]>;
+    deleteShortcut(shortPath: string): void;
     incrementHits(shortPath: string): void;
     logAnalytics(analyticsObj: any): void;
 

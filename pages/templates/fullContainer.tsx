@@ -1,6 +1,6 @@
 import React from "react";
 
-function Container({title, children}) {
+function FullContainer({title, children}) {
     return <html>
         <head>
             <title>{title}</title>
@@ -14,4 +14,4 @@ function Container({title, children}) {
         </html>;
 }
 
-export default Container;
+export default FullContainer;

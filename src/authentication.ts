@@ -17,8 +17,16 @@ export class Authenticator {
     }
 
     isValidCookie(cookie: string): boolean {
-        let kvPair = cookie.split("=");
-        return this.isValidCredential(kvPair[1]);
+        let cookieSplit = cookie.split("; ");
+        let cookieMap = {};
+        for (let i = 0; i < cookieSplit.length; i++) {
+            let kvPair = cookieSplit[i].split("=");
+            cookieMap[kvPair[0]] = kvPair[1];
+        }
+        if (cookieMap["credential"]) {
+            return this.isValidCredential(cookieMap["credential"]);
+        }
+        return false;
     }
 
 }

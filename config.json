@@ -3,5 +3,6 @@
     "password": "my_password",
     "mongo_uri": "",
     "mongo_database": "LnkShrtnr",
-    "db_connection_type": "sqlite"
+    "db_connection_type": "sqlite",
+    "collect_detailed_analytics": "false"
 }

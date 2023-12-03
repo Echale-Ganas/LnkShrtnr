@@ -5,7 +5,7 @@ function Navigation({currentPage}) {
         <h1>LnkShrtnr</h1>
         <ul>
             <li><a href="/admin">Admin</a></li>
-            <li><a href="/admin">Create New Link</a></li>
+            <li><a href="/create">Create New Link</a></li>
             <li><a href="/logout">Logout</a></li>
         </ul>
     </div>;

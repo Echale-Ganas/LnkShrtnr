@@ -7,6 +7,7 @@ export class SqliteInterface implements DbInterface {
     private addQuery: Statement;
     private findQuery: Statement;
     private updateHitsQuery: Statement;
+    private getAllQuery: Statement;
 
     constructor() {
 
@@ -22,12 +23,14 @@ export class SqliteInterface implements DbInterface {
             longPath TEXT NOT NULL,
             title TEXT,
             hits INT,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (shortPath)
         )`);
 
-        this.addQuery = this.db.query(`INSERT INTO Shortcuts (shortPath, longPath, title, hits) VALUES ($shortPath, $longPath, $title, $hits)`);
-        this.findQuery = this.db.query(`SELECT * FROM Shortcuts WHERE shortPath = $short`);
-        this.updateHitsQuery = this.db.query(`UPDATE Shortcuts SET hits = hits + 1 WHERE shortPath = $short`);
+        this.addQuery = this.db.query(`INSERT INTO Shortcuts (shortPath, longPath, title, hits) VALUES ($shortPath, $longPath, $title, $hits);`);
+        this.findQuery = this.db.query(`SELECT * FROM Shortcuts WHERE shortPath = $short;`);
+        this.updateHitsQuery = this.db.query(`UPDATE Shortcuts SET hits = hits + 1 WHERE shortPath = $shortPath;`);
+        this.getAllQuery = this.db.query(`SELECT * FROM Shortcuts;`)
     }
 
     addShortcut(shortcut: Shortcut): Promise<boolean> {
@@ -55,6 +58,17 @@ export class SqliteInterface implements DbInterface {
     incrementHits(shortPath: string): void {
         this.updateHitsQuery.run({
             $shortPath: shortPath
+        });
+    }
+
+    getAllShortcuts(): Promise<Shortcut[]> {
+        return new Promise((resolve) => {
+            let queryResult = this.getAllQuery.all();
+            let shortcuts = [];
+            queryResult.forEach((e) => {
+                shortcuts.push(new Shortcut(e.shortPath, e.longPath, e.title, e.hits));
+            })
+            resolve(shortcuts);
         });
     }
 
