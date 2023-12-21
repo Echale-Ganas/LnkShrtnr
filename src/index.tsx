@@ -55,8 +55,21 @@ function isFrontendPage(path: string): boolean {
     return path === "/" || path === "/admin" || path === "/login" || path === "/create";
 }
 
-function getInternalRedirect(path: string): string {
+export function getInternalRedirect(path: string): string {
     return `<html><script type="text/javascript">window.location.replace("/${path}")</script></html>`
+}
+
+export function checkIfAuthorized(req: Request, resolve): boolean {
+    if (!req.headers.has("cookie") || !auth.isValidCookie(req.headers.get("cookie"))) {
+        resolve(new Response(`Sorry! You're trying to access unauthorized pages. <a href="/login">Login here.</a>`, {
+            headers: {
+                "Content-Type": "text/html"
+            },
+            status: 401
+        }));
+        return false;
+    }
+    return true;
 }
 
 function processRequest(req: Request): Promise<Response> {
@@ -75,14 +88,9 @@ function processRequest(req: Request): Promise<Response> {
         }
         if (req.method.toLowerCase() === "post") {
             if (url.pathname === "/create") {
-                if (!req.headers.has("cookie") || !auth.isValidCookie(req.headers.get("cookie"))) {
-                    resolve(new Response("Sorry! You're trying to access unauthorized pages.", {
-                        status: 401
-                    }));
-                    return;
-                }
+                if (!checkIfAuthorized(req, resolve)) return;
                 let createFormData: FormData = await req.formData();
-                if (createFormData == undefined || !createFormData.has("shortPath") || !createFormData.has("longPath")) {
+                if (!createFormData.has("shortPath") || !createFormData.has("longPath")) {
                     resolve(new Response("Cannot process this request due to missing information", {
                         status: 400
                     }));
@@ -123,7 +131,7 @@ function processRequest(req: Request): Promise<Response> {
             }
         } else {
             if (isFrontendPage(url.pathname)) {
-                return HandleFrontend(req, dbConnection, auth, resolve, reject);
+                await HandleFrontend(req, dbConnection, auth, resolve, reject);
             } else if (url.pathname === "/logout") {
                 resolve(new Response(getInternalRedirect(""), {
                     headers: {
