@@ -58,6 +58,7 @@ export class MongoInterface implements DbInterface {
     }
 
     incrementHits(shortPath: string): void {
+        // TODO: fix query and test that it works
         // let updateQuery;
         // if (result.hits) updateQuery = {$inc: {hits: 1}};
         // else updateQuery = {$set: {hits: 1}};
@@ -68,6 +69,7 @@ export class MongoInterface implements DbInterface {
     }
 
     getAllShortcuts(): Promise<Shortcut[]> {
+        // TODO: make the query for all shortcuts and return result
         return Promise.resolve([]);
     }
 

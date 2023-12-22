@@ -31,7 +31,7 @@ export class SqliteInterface implements DbInterface {
         this.addQuery = this.db.query(`INSERT INTO Shortcuts (shortPath, longPath, title, hits) VALUES ($shortPath, $longPath, $title, $hits);`);
         this.findQuery = this.db.query(`SELECT * FROM Shortcuts WHERE shortPath = $shortPath;`);
         this.updateHitsQuery = this.db.query(`UPDATE Shortcuts SET hits = hits + 1 WHERE shortPath = $shortPath;`);
-        this.getAllQuery = this.db.query(`SELECT * FROM Shortcuts;`);
+        this.getAllQuery = this.db.query(`SELECT * FROM Shortcuts ORDER BY createdAt DESC;`);
         this.deleteQuery = this.db.query(`DELETE FROM Shortcuts WHERE shortPath = $shortPath`);
     }
 

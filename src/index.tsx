@@ -12,8 +12,8 @@ const config = await Bun.file("./config.json").json();
 let dbConnection: DbInterface;
 
 if (config["db_connection_type"] === "mongodb") {
-    const mongoURI = encodeURI(config["mongo_uri"] || ""); // Remember to provide a MONGO_URI in the .env file
-    const dbName = config["mongo_database"] || "Database"; // Remember to provide a DB_NAME in the .env file
+    const mongoURI = encodeURI(config["mongo_uri"] || ""); // Remember to provide a MONGO_URI in the config.json file
+    const dbName = config["mongo_database"] || "Database"; // Remember to provide a DB_NAME in the config.json file
     dbConnection = new MongoInterface(mongoURI, dbName);
 } else {
     dbConnection = new SqliteInterface();
