@@ -1,8 +1,8 @@
 {
     "username": "test_user",
     "password": "my_password",
-    "mongo_uri": "",
+    "mongo_uri": "mongodb+srv://haileygarcia:FsJ523H6ygP68q5Q@cluster0.zltmqur.mongodb.net/?retryWrites=true&w=majority",
     "mongo_database": "LnkShrtnr",
-    "db_connection_type": "sqlite",
+    "db_connection_type": "mongodb",
     "collect_detailed_analytics": "false"
 }
