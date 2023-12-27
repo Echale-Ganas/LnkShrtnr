@@ -1,25 +1,23 @@
-import {MongoClient, ServerApiVersion} from "mongodb";
-import {DbInterface, Shortcut} from "./dbInterface";
+import { Collection, MongoClient, ServerApiVersion } from "mongodb";
+import { DbInterface, Shortcut } from "./dbInterface";
 
 export class MongoInterface implements DbInterface {
-
-    private shortcuts;
-    private analytics;
+    private shortcuts: Collection<Document>;
+    private analytics: Collection<Document>;
 
     constructor(mongoURI: string, dbName: string) {
-
         const client = new MongoClient(mongoURI, {
             serverApi: {
-                version: ServerApiVersion.v1,
-                strict: true,
-                deprecationErrors: true,
-            }
+              version: ServerApiVersion.v1,
+              strict: true,
+              deprecationErrors: true,
+            },
         });
-        const connection = client.connect().then(() => {
-            const db = connection.db(dbName).then(() => {
-                this.shortcuts = db.collection("Shortcuts");
-                this.analytics = db.collection("Analytics");
-            });
+        client.connect().then((connection: any) => {
+            const db = connection.db(dbName);
+            this.shortcuts = db.collection("Shortcuts");
+            this.analytics = db.collection("Analytics");
+            this.shortcuts.createIndex( { "shortPath": 1 }, { unique: true } )
         });
     }
 
@@ -27,11 +25,11 @@ export class MongoInterface implements DbInterface {
         return new Promise((resolve, reject) => {
             let shortcutObj = {
                 shortPath: shortcut.shortPath,
-                longPath: shortcut.longPath
-            }
+                longPath: shortcut.longPath,
+            };
             if (shortcut.title) shortcutObj["title"] = shortcut.title;
             this.shortcuts.insertOne(shortcutObj).then(() => {
-                resolve(true)
+                resolve(true);
             }).catch(() => {
                 reject(false);
             });
@@ -40,40 +38,49 @@ export class MongoInterface implements DbInterface {
 
     findShortcut(shortPath: string): Promise<Shortcut> {
         return new Promise((resolve, reject) => {
-            let query = {shortPath: shortPath};
-            let result = this.shortcuts.findOne(query);
-            if (result && result.longPath) {
-                let found = new Shortcut(shortPath, result.longPath);
-                if (result.title) found.title = result.title;
-                if (result.hits) found.hits = result.hits;
-                resolve(found);
-            } else {
+            let query = { shortPath: shortPath };
+            this.shortcuts.findOne(query).then((result: any) => {
+                if (result != null) {
+                    let found = new Shortcut(shortPath, result.longPath);
+                    if (result.title) found.title = result.title;
+                    if (result.hits) found.hits = result.hits;
+                    resolve(found);
+                } else {
+                    reject(undefined);
+                }
+            }).catch(() => {
                 reject(undefined);
-            }
-        })
+            });
+        });
     }
 
     logAnalytics(analyticsObj: any): void {
         this.analytics.insertOne(analyticsObj);
     }
 
-    incrementHits(shortPath: string): void {
-        // TODO: fix query and test that it works
-        // let updateQuery;
-        // if (result.hits) updateQuery = {$inc: {hits: 1}};
-        // else updateQuery = {$set: {hits: 1}};
-        // await shortcuts.updateOne(
-        //     {shortPath: shortcut},
-        //     updateQuery
-        // );
+    incrementHits(shortcut: Shortcut): void {
+        let updateQuery;
+        if (shortcut.hits) updateQuery = {$inc: {hits: 1}};
+        else updateQuery = {$set: {hits: 1}};
+        this.shortcuts.updateOne(
+            {shortPath: shortcut},
+            updateQuery
+        );
     }
 
-    getAllShortcuts(): Promise<Shortcut[]> {
-        // TODO: make the query for all shortcuts and return result
-        return Promise.resolve([]);
+    async getAllShortcuts(): Promise<Shortcut[]> {
+        let allShortcuts: Shortcut[] = [];
+        let query = await this.shortcuts.find({}).sort({}).toArray();
+        query.forEach((e: any) => {
+            let shortcut = new Shortcut(e.shortPath, e.longPath);
+            if (e.hits) shortcut.hits = e.hits;
+            if (e.title) shortcut.title = e.title;
+            allShortcuts.push(shortcut);
+        });
+        return Promise.resolve(allShortcuts);
     }
 
     deleteShortcut(shortPath: string): void {
+      // TODO(@hailey): Delete the shortcut that matches the provided shortPath.
     }
-
 }

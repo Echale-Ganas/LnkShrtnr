@@ -7,7 +7,13 @@ import {Component} from "react";
 
 require('dotenv').config()
 
-const config = await Bun.file("./config.json").json();
+let config: any;
+
+if (Bun.file("./config.local.json")) {
+    config = await Bun.file("./config.local.json").json();
+} else {
+    config = await Bun.file("./config.json").json();
+}
 
 let dbConnection: DbInterface;
 
@@ -154,6 +160,9 @@ function processRequest(req: Request): Promise<Response> {
             } else {
                 let shortcut = url.pathname.slice(1).trim().toLowerCase();
                 dbConnection.findShortcut(shortcut).then((result) => {
+                    if (!result) {
+                        throw new Error();
+                    }
                     let title = result.title || url.pathname.slice(1);
                     resolve(new Response(`<html><head><title>${title}</title></head>
                         <script type="text/javascript">window.location.replace("${result.longPath}")</script>
@@ -162,7 +171,7 @@ function processRequest(req: Request): Promise<Response> {
                             "Content-Type": "text/html",
                         },
                     }));
-                    dbConnection.incrementHits(shortcut);
+                    dbConnection.incrementHits(result);
                     return;
                 }).catch((error) => {
                     resolve(new Response("Sorry, unable to find that link!"))
@@ -175,7 +184,7 @@ function processRequest(req: Request): Promise<Response> {
                 "path": url.pathname,
                 "timestamp": Date.now()
             };
-            if (url.searchParams && url.searchParams.size) analyticObject["params"] = url.searchParams;
+            if (url.searchParams && url.searchParams) analyticObject["params"] = url.searchParams;
             dbConnection.logAnalytics(analyticObject);
         }
     })
