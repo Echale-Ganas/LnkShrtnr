@@ -5,6 +5,8 @@
 *.sqlite-shm
 *.sqlite-wal
 
+config.local.json
+
 # Logs
 
 logs

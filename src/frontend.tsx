@@ -36,6 +36,7 @@ async function HandleFrontend(req: Request, dbConnection: DbInterface, auth: Aut
     } else if (url.pathname === "/admin") {
         if (!checkIfAuthorized(req, resolve)) return;
         let shortcuts: Shortcut[] = await dbConnection.getAllShortcuts();
+        console.log(shortcuts)
         const stream = await renderToReadableStream(<Admin rawShortcuts={shortcuts}/>);
         resolve(new Response(stream, {
             headers: { "Content-Type": "text/html" },

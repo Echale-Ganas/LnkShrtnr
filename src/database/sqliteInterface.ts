@@ -49,7 +49,7 @@ export class SqliteInterface implements DbInterface {
 
     findShortcut(shortPath: string): Promise<Shortcut> {
         return new Promise((resolve, reject) => {
-            let result = this.findQuery.get({ $shortPath: shortPath });
+            let result: any = this.findQuery.get({ $shortPath: shortPath });
             resolve(new Shortcut(result.shortPath, result.longPath, result.title, result.hits));
         });
     }
@@ -57,17 +57,17 @@ export class SqliteInterface implements DbInterface {
     logAnalytics(analyticsObj: any): void {
     }
 
-    incrementHits(shortPath: string): void {
+    incrementHits(shortcut: Shortcut): void {
         this.updateHitsQuery.run({
-            $shortPath: shortPath
+            $shortPath: shortcut.shortPath
         });
     }
 
     getAllShortcuts(): Promise<Shortcut[]> {
         return new Promise((resolve) => {
             let queryResult = this.getAllQuery.all();
-            let shortcuts = [];
-            queryResult.forEach((e) => {
+            let shortcuts: Shortcut[] = [];
+            queryResult.forEach((e: any) => {
                 shortcuts.push(new Shortcut(e.shortPath, e.longPath, e.title, e.hits));
             })
             resolve(shortcuts);
