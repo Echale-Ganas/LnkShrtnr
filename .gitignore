@@ -5,6 +5,7 @@
 *.sqlite-shm
 *.sqlite-wal
 src/devFunctions/
+sslKeys/*.pem
 
 config.local.json
 

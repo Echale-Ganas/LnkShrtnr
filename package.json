@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun ./src/index.tsx",
-    "prod": "PORT=80 pm2 start --interpreter ~/.bun/bin/bun src/index.tsx --name LnkShrtnr",
-    "prod_off": "pm2 stop LnkShrtnr && pm2 delete LnkShrtnr"
+    "prod": "PROD=true bun run src/index.tsx"
   },
   "devDependencies": {
     "@types/react-dom": "^18.2.15",

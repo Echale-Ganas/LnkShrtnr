@@ -185,9 +185,25 @@ function processRequest(req: Request): Promise<Response> {
     })
 }
 
+let serverPort = 3030;
+let tlsSettings: any = {};
+if (process.env.PROD == "true") {
+    serverPort = 80;
+    try {
+        tlsSettings["key"] = Bun.file("./sslKeys/key.pem");
+        tlsSettings["cert"] = Bun.file("./sslKeys/cert.pem");
+        tlsSettings["passphrase"] = config["sslPassphrase"]
+    } catch (e) {
+        console.log("SSL keys are non-existent. Will use HTTP.");
+    }
+    if (tlsSettings["key"] && tlsSettings["cert"]) {
+        serverPort = 443;
+    }
+}
 
 const server = Bun.serve({
-    port: process.env.PORT || 3030,
+    port: serverPort,
+    tls: tlsSettings,
     fetch: processRequest,
     error(error) {
         console.log(error)
