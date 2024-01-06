@@ -1,14 +1,15 @@
 import HandleFrontend from "./frontend";
-import {DbInterface, Shortcut} from "./database/dbInterface";
+import {AnalyticsObject, DbInterface, Shortcut} from "./database/dbInterface";
 import {MongoInterface} from "./database/mongoInterface";
 import {SqliteInterface} from "./database/sqliteInterface";
 import { Authenticator } from "./authentication";
-import {Component} from "react";
+import {pageNotFound, unauthorizedPage} from "./common";
 
 require('dotenv').config()
 
 let config: any;
 
+// Look for local config file before presets.
 if (Bun.file("./config.local.json")) {
     config = await Bun.file("./config.local.json").json();
 } else {
@@ -24,6 +25,7 @@ if (config["db_connection_type"] === "mongodb") {
 } else {
     dbConnection = new SqliteInterface();
 }
+dbConnection.runMigrations();
 let passwordHashed: string = await Bun.password.hash(config["password"]);
 let hashedPassword: string = Bun.hash(config["password"]).toString();
 const auth: Authenticator = new Authenticator(passwordHashed, hashedPassword);
@@ -62,25 +64,19 @@ function isFrontendPage(path: string): boolean {
 }
 
 export function getInternalRedirect(path: string): string {
-    return `<html><script type="text/javascript">window.location.replace("/${path}")</script></html>`
+    return `<html><script type="text/javascript">window.location.replace("/${path}")</script></html>`;
 }
 
-export function checkIfAuthorized(req: Request, resolve): boolean {
+export function checkIfAuthorized(req: Request, resolve: any): boolean {
     if (!req.headers.has("cookie") || !auth.isValidCookie(req.headers.get("cookie"))) {
-        resolve(new Response(`Sorry! You're trying to access unauthorized pages. <a href="/login">Login here.</a>`, {
-            headers: {
-                "Content-Type": "text/html"
-            },
-            status: 401
-        }));
+        resolve(unauthorizedPage());
         return false;
     }
     return true;
 }
 
 function processRequest(req: Request): Promise<Response> {
-    const url = new URL(req.url);
-    console.log(req);
+    const url: URL = new URL(req.url);
     return new Promise<Response>(async (resolve, reject) => {
         if (shouldDenyServe(url.pathname)) {
             resolve(new Response("Sorry! You're trying to access unauthorized pages.", {
@@ -96,9 +92,12 @@ function processRequest(req: Request): Promise<Response> {
             if (url.pathname === "/create") {
                 if (!checkIfAuthorized(req, resolve)) return;
                 let createFormData: FormData = await req.formData();
-                if (!createFormData.has("shortPath") || !createFormData.has("longPath")) {
-                    resolve(new Response("Cannot process this request due to missing information", {
-                        status: 400
+                if (!createFormData || !createFormData.has("shortPath") || !createFormData.has("longPath")) {
+                    resolve(new Response(`Cannot process this request due to missing information.<a href="/create">Go back</a>`, {
+                        status: 400,
+                        headers: {
+                            "content-type": "html"
+                        }
                     }));
                     return;
                 }
@@ -131,13 +130,12 @@ function processRequest(req: Request): Promise<Response> {
                         return;
                     }
                 }
-                resolve(new Response("wrong credentials", {
-                    status: 401
-                }));
+                resolve(await unauthorizedPage());
             }
         } else {
             if (isFrontendPage(url.pathname)) {
                 await HandleFrontend(req, dbConnection, auth, resolve, reject);
+                return;
             } else if (url.pathname === "/logout") {
                 resolve(new Response(getInternalRedirect(""), {
                     headers: {
@@ -146,7 +144,6 @@ function processRequest(req: Request): Promise<Response> {
                     }
                 }));
                 return;
-
             } else if (url.pathname === "/delete") {
                 if (url.searchParams && url.searchParams.size && url.searchParams.has("shortPath")) {
                     await dbConnection.deleteShortcut(url.searchParams.get("shortPath"));
@@ -173,19 +170,19 @@ function processRequest(req: Request): Promise<Response> {
                     }));
                     dbConnection.incrementHits(result);
                     return;
-                }).catch((error) => {
-                    resolve(new Response("Sorry, unable to find that link!"))
+                }).catch(async (error) => {
+                    resolve(await pageNotFound());
                 })
             }
         }
     }).finally(() => {
-        if (!isExcludedFromAnalytics(url.pathname)) {
-            let analyticObject = {
-                "path": url.pathname,
-                "timestamp": Date.now()
-            };
-            if (url.searchParams && url.searchParams) analyticObject["params"] = url.searchParams;
-            dbConnection.logAnalytics(analyticObject);
+        if (config["collect_detailed_analytics"] && !isExcludedFromAnalytics(url.pathname)) {
+            let analyticObj: AnalyticsObject = new AnalyticsObject(
+                url.pathname,
+                Date.now()
+            )
+            if (url.searchParams && url.searchParams && url.searchParams.size) analyticObj.params = url.searchParams;
+            dbConnection.logAnalytics(analyticObj);
         }
     })
 }

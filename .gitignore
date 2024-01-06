@@ -4,6 +4,7 @@
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+src/devFunctions/
 
 config.local.json
 

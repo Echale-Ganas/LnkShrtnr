@@ -1,3 +1,4 @@
+// @ts-ignore
 import { Collection, MongoClient, ServerApiVersion } from "mongodb";
 import { DbInterface, Shortcut } from "./dbInterface";
 
@@ -21,9 +22,13 @@ export class MongoInterface implements DbInterface {
         });
     }
 
+    runMigrations() {
+        return;
+    }
+
     addShortcut(shortcut: Shortcut): Promise<boolean> {
         return new Promise((resolve, reject) => {
-            let shortcutObj = {
+            let shortcutObj: any = {
                 shortPath: shortcut.shortPath,
                 longPath: shortcut.longPath,
             };
@@ -81,6 +86,6 @@ export class MongoInterface implements DbInterface {
     }
 
     deleteShortcut(shortPath: string): void {
-      // TODO(@hailey): Delete the shortcut that matches the provided shortPath.
+        this.shortcuts.deleteOne({shortPath: shortPath});
     }
 }

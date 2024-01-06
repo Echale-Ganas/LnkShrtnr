@@ -4,5 +4,5 @@
     "mongo_uri": "",
     "mongo_database": "LnkShrtnr",
     "db_connection_type": "sqlite",
-    "collect_detailed_analytics": "false"
+    "collect_detailed_analytics": false
 }
