@@ -5,8 +5,6 @@ import {SqliteInterface} from "./database/sqliteInterface";
 import { Authenticator } from "./authentication";
 import {pageNotFound, unauthorizedPage} from "./common";
 
-require('dotenv').config()
-
 let config: any;
 
 // Look for local config file before presets.
