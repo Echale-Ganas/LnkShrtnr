@@ -10,9 +10,9 @@ require('dotenv').config()
 let config: any;
 
 // Look for local config file before presets.
-if (Bun.file("./config.local.json")) {
+try {
     config = await Bun.file("./config.local.json").json();
-} else {
+} catch {
     config = await Bun.file("./config.json").json();
 }
 
@@ -189,7 +189,7 @@ function processRequest(req: Request): Promise<Response> {
 
 
 const server = Bun.serve({
-    port: 3030,
+    port: process.env.PORT || 3030,
     fetch: processRequest,
     error(error) {
         console.log(error)
