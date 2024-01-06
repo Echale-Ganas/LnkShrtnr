@@ -33,5 +33,6 @@ export interface DbInterface {
     incrementHits(shortcut: Shortcut): void;
     logAnalytics(analyticsObj: AnalyticsObject): void;
     runMigrations(): void;
+    closeConnection(): void;
 
 }

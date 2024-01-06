@@ -51,6 +51,10 @@ export class SqliteInterface implements DbInterface {
         this.logQueryWParams = this.db.query(`INSERT INTO Analytics (path, timestamp, params) VALUES ($path, $timestamp, $params);`);
     }
 
+    closeConnection() {
+        this.db.close();
+    }
+
     addShortcut(shortcut: Shortcut): Promise<boolean> {
         return new Promise((resolve) => {
             this.addQuery.run({

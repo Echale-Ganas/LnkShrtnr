@@ -5,16 +5,17 @@ import { DbInterface, Shortcut } from "./dbInterface";
 export class MongoInterface implements DbInterface {
     private shortcuts: Collection<Document>;
     private analytics: Collection<Document>;
+    private client: MongoClient;
 
     constructor(mongoURI: string, dbName: string) {
-        const client = new MongoClient(mongoURI, {
+        this.client = new MongoClient(mongoURI, {
             serverApi: {
               version: ServerApiVersion.v1,
               strict: true,
               deprecationErrors: true,
             },
         });
-        client.connect().then((connection: any) => {
+        this.client.connect().then((connection: any) => {
             const db = connection.db(dbName);
             this.shortcuts = db.collection("Shortcuts");
             this.analytics = db.collection("Analytics");
@@ -24,6 +25,10 @@ export class MongoInterface implements DbInterface {
 
     runMigrations() {
         return;
+    }
+
+    closeConnection() {
+        this.client.close();
     }
 
     addShortcut(shortcut: Shortcut): Promise<boolean> {

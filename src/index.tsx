@@ -199,4 +199,10 @@ const server = Bun.serve({
     },
 });
 
+process.on("exit", () => {
+    server.stop();
+    dbConnection.closeConnection();
+    process.exit();
+});
+
 console.log(`Serving on ${server.port}`);
