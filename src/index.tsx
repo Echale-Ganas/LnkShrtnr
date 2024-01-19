@@ -4,6 +4,7 @@ import {MongoInterface} from "./database/mongoInterface";
 import {SqliteInterface} from "./database/sqliteInterface";
 import { Authenticator } from "./authentication";
 import {pageNotFound, unauthorizedPage} from "./common";
+import {Server} from "bun";
 
 let config: any;
 
@@ -192,16 +193,21 @@ if (process.env.PROD == "true") {
     try {
         tlsSettings["key"] = Bun.file("./sslKeys/key.pem");
         tlsSettings["cert"] = Bun.file("./sslKeys/cert.pem");
-        tlsSettings["passphrase"] = config["sslPassphrase"]
+        if (!tlsSettings["key"].size || !tlsSettings["cert"].size) {
+            throw new Error();
+        }
+        tlsSettings["passphrase"] = config["sslPassphrase"];
     } catch (e) {
         console.log("SSL keys are non-existent. Will use HTTP.");
+        tlsSettings["key"] = null;
+        tlsSettings["cert"] = null;
     }
     if (tlsSettings["key"] && tlsSettings["cert"]) {
         serverPort = 443;
     }
 }
 
-const server = Bun.serve({
+const server: Server = Bun.serve({
     port: serverPort,
     tls: tlsSettings,
     fetch: processRequest,
@@ -215,7 +221,29 @@ const server = Bun.serve({
     },
 });
 
+let sslRedirect: Server;
+
+if (serverPort === 443) {
+    let cacheHostname: string;
+    sslRedirect = Bun.serve({
+        port: 80,
+        fetch: (req: Request): Promise<Response> => {
+            if (!cacheHostname) cacheHostname = new URL(req.url).hostname;
+            return Promise.resolve(new Response(null, {
+                status: 301,
+                headers: {
+                    location: "https://" + cacheHostname
+                }
+            }));
+        },
+        error(error) {
+            console.log(error)
+        }
+    })
+}
+
 process.on("exit", () => {
+    if (sslRedirect) sslRedirect.stop();
     server.stop();
     dbConnection.closeConnection();
     process.exit();
