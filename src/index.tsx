@@ -220,13 +220,15 @@ const server: Server = Bun.serve({
 let sslRedirect: Server;
 
 if (serverPort === 443) {
+    let cacheHostname: string;
     sslRedirect = Bun.serve({
         port: 80,
         fetch: (req: Request): Promise<Response> => {
+            if (!cacheHostname) cacheHostname = new URL(req.url).hostname;
             return Promise.resolve(new Response(null, {
                 status: 301,
                 headers: {
-                    location: "https://0.0.0.0"
+                    location: "https://" + cacheHostname
                 }
             }));
         },
