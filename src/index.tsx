@@ -193,15 +193,19 @@ if (process.env.PROD == "true") {
     try {
         tlsSettings["key"] = Bun.file("./sslKeys/key.pem");
         tlsSettings["cert"] = Bun.file("./sslKeys/cert.pem");
+        if (!tlsSettings["key"].size || !tlsSettings["cert"].size) {
+            throw new Error();
+        }
         tlsSettings["passphrase"] = config["sslPassphrase"];
     } catch (e) {
         console.log("SSL keys are non-existent. Will use HTTP.");
+        tlsSettings["key"] = null;
+        tlsSettings["cert"] = null;
     }
     if (tlsSettings["key"] && tlsSettings["cert"]) {
         serverPort = 443;
     }
 }
-
 
 const server: Server = Bun.serve({
     port: serverPort,
