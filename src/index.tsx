@@ -4,6 +4,7 @@ import {MongoInterface} from "./database/mongoInterface";
 import {SqliteInterface} from "./database/sqliteInterface";
 import { Authenticator } from "./authentication";
 import {pageNotFound, unauthorizedPage} from "./common";
+import {Server} from "bun";
 
 let config: any;
 
@@ -201,26 +202,8 @@ if (process.env.PROD == "true") {
     }
 }
 
-let sslRedirect;
 
-if (serverPort === 443) {
-    sslRedirect = Bun.serve({
-        port: 80,
-        fetch: (req: Request): Promise<Response> => {
-            return Promise.resolve(new Response(null, {
-                status: 301,
-                headers: {
-                    location: "https://"
-                }
-            }));
-        },
-        error(error) {
-            console.log(error)
-        }
-    })
-}
-
-const server = Bun.serve({
+const server: Server = Bun.serve({
     port: serverPort,
     tls: tlsSettings,
     fetch: processRequest,
@@ -234,7 +217,27 @@ const server = Bun.serve({
     },
 });
 
+let sslRedirect: Server;
+
+if (serverPort === 443) {
+    sslRedirect = Bun.serve({
+        port: 80,
+        fetch: (req: Request): Promise<Response> => {
+            return Promise.resolve(new Response(null, {
+                status: 301,
+                headers: {
+                    location: "https://0.0.0.0"
+                }
+            }));
+        },
+        error(error) {
+            console.log(error)
+        }
+    })
+}
+
 process.on("exit", () => {
+    if (sslRedirect) sslRedirect.stop();
     server.stop();
     dbConnection.closeConnection();
     process.exit();
