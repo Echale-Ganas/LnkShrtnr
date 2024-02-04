@@ -1,3 +1,4 @@
+// @ts-ignore
 import { Collection, MongoClient, ServerApiVersion } from "mongodb";
 import { DbInterface, Shortcut } from "./dbInterface";
 

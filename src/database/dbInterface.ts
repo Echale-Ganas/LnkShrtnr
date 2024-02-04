@@ -12,13 +12,27 @@ export class Shortcut {
     }
 }
 
+export class AnalyticsObject {
+    path: string;
+    timestamp: number;
+    params?: any;
+
+    constructor(path: string, timestamp: number, params?: any) {
+        this.path = path;
+        this.timestamp = timestamp;
+        this.params = params;
+    }
+}
+
 export interface DbInterface {
 
     findShortcut(shortPath: string): Promise<Shortcut>;
     addShortcut(shortcut: Shortcut): Promise<boolean>;
     getAllShortcuts(): Promise<Shortcut[]>;
     deleteShortcut(shortPath: string): void;
-    incrementHits(shortPath: string): void;
-    logAnalytics(analyticsObj: any): void;
+    incrementHits(shortcut: Shortcut): void;
+    logAnalytics(analyticsObj: AnalyticsObject): void;
+    runMigrations(): void;
+    closeConnection(): void;
 
 }
